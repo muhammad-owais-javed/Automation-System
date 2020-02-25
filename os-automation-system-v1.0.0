@@ -1,0 +1,1201 @@
+
+/****************************************************************
+ *  Name    : OS Automation System v1.0.0                       *
+ *  Author  : Muhammad Owais Javed	                            *                    
+ *                                                              *
+ *  Notice  : Copyright (c) 2018                                *
+ *          : All Rights Reserved                               *
+ *  Date    : 8/1/2018                                          *
+ *  Version : 4.0.0                                             *
+ *  Notes   : This Code is written by Muhammad Owais Javed and  *
+ *          : can be used and shared ethically.                 *
+ *  Sudo    : @AA1,@AA2,@AB1,@AB2,@AC1,@AC2,@AD1,@AD2,@AZ1,@AZ2 *          
+ *            @TAA1,@TAA2,@SAA1,@SAA2                           *
+ ****************************************************************/
+
+//Libraries
+#include <SoftwareSerial.h>
+#include <Wire.h>
+#include "RTClib.h"
+#include "DHT.h"
+#include <SPI.h>
+#include <SD.h>
+
+//Pin Numbers and Model type
+#define DHTPIN 8
+#define DHTTYPE DHT11  
+#define AA 4
+#define AB 5
+#define AC 6
+#define AD 7
+const int chipSelect = 10;
+
+SoftwareSerial GPRS(2, 3); // RX, TX GSM RX WILL CONNECT TO 3
+DHT dht(DHTPIN, DHTTYPE);
+RTC_DS1307 RTC;
+File OS;
+
+//Variables declaration & initialization
+char buffer[50];
+char sudo[20];
+char modvar[5];   //modvar[] will select mode of operation ("N" for GSM based Automation , "T" for Temperature based Automation , "S" for Schedule based Automation)
+char hr[1];
+char temp[4];
+
+int a=0;
+int j=0;
+int k=0;
+
+float cold_temp = 32.00;
+float hot_temp = 36.00;
+int temp_sens_delay=250;
+
+int AA_ON_hr=9;
+int AA_OFF_hr=20;
+
+void resetbuffer()                            
+{
+  memset(buffer,0,sizeof(buffer));              
+  a=0;  
+}
+
+void setup()
+{
+  GPRS.begin(9600);
+  Serial.begin(9600);
+  Wire.begin();
+  RTC.begin();
+  
+  pinMode(AA,OUTPUT);
+  pinMode(AB,OUTPUT);
+  pinMode(AC,OUTPUT);
+  pinMode(AD,OUTPUT);   
+
+  if (! RTC.isrunning()) 
+  {
+    Serial.println(F("RTC is NOT running!"));
+    // following line sets the RTC to the date & time this sketch was compiled
+    RTC.adjust(DateTime(__DATE__, __TIME__));
+  }
+  
+    for (int i = 1; i <=5; i++)       
+      {
+        GPRS.print(F("AT+CMGD="));
+        GPRS.println(i);
+        delay(200);
+
+        while(GPRS.available()) 
+        Serial.write(GPRS.read());
+      }
+  
+  dht.begin();
+
+  Serial.println(F("DHT11 Initialized!"));
+
+  Serial.print(F("Initializing SD card..."));
+  // See if the card is present and can be initialized:
+  if ( !SD.begin(chipSelect) ) 
+  {
+    Serial.println(F("Card failed, or not present"));
+  }
+  Serial.println(F("Card Initialized."));
+
+}
+
+
+void loop()
+{
+
+/*
+    //For Checking Current Date & Time
+    DateTime now = RTC.now();     
+    Serial.print(now.year(), DEC);
+    Serial.print('/');
+    Serial.print(now.month(), DEC);
+    Serial.print('/');
+    Serial.print(now.day(), DEC);
+    Serial.print(' ');
+    Serial.print(now.hour(), DEC);
+    Serial.print(':');
+    Serial.print(now.minute(), DEC);
+    Serial.print(':');
+    Serial.print(now.second(), DEC);
+    Serial.println(); 
+    delay(1000);
+*/
+
+/*  
+  // Open The File. Note That Only One File Can Be Open At A Time,
+  // So You Have To Close This One Before Opening Another.
+  
+  OS = SD.open("OS.txt", FILE_WRITE);
+
+  // If the file opened okay, write to it:
+  if (OS) 
+  {
+    DateTime now = RTC.now();     
+    OS.println("Date & Time"); 
+    OS.print(now.year(), DEC);
+    OS.print('/');
+    OS.print(now.month(), DEC);
+    OS.print('/');
+    OS.print(now.day(), DEC);
+    OS.print(' ');
+    OS.print(now.hour(), DEC);
+    OS.print(':');
+    OS.print(now.minute(), DEC);
+    OS.print(':');
+    OS.print(now.second(), DEC);
+    OS.println(); 
+   
+    // Close the file:
+    OS.close();
+  } 
+  else 
+  {
+    // If the file didn't open, print an error:
+    Serial.println("Error Opening OS.txt");
+  }
+
+*/    
+/* 
+   //For Monitoring Atmospheric Parameters
+   delay(500);
+   float h = dht.readHumidity();
+   float t = dht.readTemperature();
+   float f = dht.readTemperature(true);
+   float hif = dht.computeHeatIndex(f, h);
+   float hic = dht.computeHeatIndex(t, h, false);
+       
+    if (isnan(h) || isnan(t) || isnan(f)) 
+  {
+    Serial.println("Failed to read Atmosphere parameters from the Sensor!");
+    return;
+  }
+  
+  Serial.print("Humidity: ");
+  Serial.print(h);
+  Serial.print(" %\t");
+  Serial.print("Temperature: ");
+  Serial.print(t);
+  Serial.print(" *C ");
+  Serial.print(f);
+  Serial.print(" *F\t");
+  Serial.print("Heat index: ");
+  Serial.print(hic);
+  Serial.print(" *C ");
+  Serial.print(hif);
+  Serial.println(" *F");
+  */
+/*
+OS = SD.open("OS.txt", FILE_WRITE);
+
+  // If the file opened okay, write to it:
+  if (OS) 
+  {
+    OS.print("Humidity: ");
+    OS.print(h);
+    OS.print(" %\t");
+    OS.print("Temperature: ");
+    OS.print(t);
+    OS.print(" *C ");
+    OS.print(f);
+    OS.print(" *F\t");
+    OS.print("Heat index: ");
+    OS.print(hic);
+    OS.print(" *C ");
+    OS.print(hif); 
+    OS.println(" *F");
+     
+    // Close the file:
+    OS.close();
+  } 
+  else 
+  {
+    // If the file didn't open, print an error:
+    Serial.println("Error Opening OS.txt");
+  }
+*/ 
+/*  //For monitoring modvar[] values
+
+  Serial.print("modvar[0]:");
+  Serial.println(modvar[0]);
+  Serial.print("modvar[1]:");
+  Serial.println(modvar[1]);
+  Serial.print("modvar[2]:");
+  Serial.println(modvar[2]);
+  Serial.print("modvar[3]:");
+  Serial.println(modvar[3]);
+  Serial.print("modvar[4]:");
+  Serial.println(modvar[4]);
+  Serial.print("modvar[5]:");
+  Serial.println(modvar[5]);
+ */ 
+
+ if( modvar[0]== 'T')
+ {
+  Temp_variation();
+ }
+
+  if( modvar[0]== 'S')
+ {
+  Schedule();
+ }
+  
+  while(GPRS.available()) 
+  {
+    gsm_r(GPRS.read());
+  }
+
+  
+  while (Serial.available()) 
+      GPRS.write(Serial.read());
+}
+
+
+
+
+//Function for GSM text recieving
+
+void gsm_r (byte response)     
+{
+  buffer[a++]= response;
+  
+  if ( a >= sizeof(buffer) )
+    resetbuffer();
+ 
+ if ( response == 13 )
+ {
+  Serial.println(buffer);
+
+   OS = SD.open("OS.txt", FILE_WRITE);
+   if (OS)
+    {
+       OS.println(buffer);  
+          
+      // Close the file:
+       OS.close();
+    } 
+    else 
+     {
+      // If the file didn't open, print an error:
+      Serial.println(F("Error Opening OS.txt"));
+     }
+  
+  for ( j=0 ; j<= sizeof(buffer) ; j++ )
+    {
+      if ( buffer[j]=='\n')
+      {
+        if ( (buffer[j+1]== '@') ) //&& (buffer[j+2]=='@'))
+        {
+          for ( k=0; k<=5 ; k++ )
+          {
+             sudo[k]=buffer[j+k];
+              if ( k==5 )
+              {
+               Serial.print(F("\n"));
+               Serial.print(F("Root:#"));
+               Serial.println(sudo);
+               sudo_operation();
+
+               // Open The File. Note That Only One File Can Be Open At A Time,
+               // So You Have To Close This One Before Opening Another.
+  
+                OS = SD.open("OS.txt", FILE_WRITE);
+  
+                // If the file opened okay, write to it:
+                if (OS)
+                {
+                 OS.print(F("\n"));
+                 OS.print(F("Root:#"));
+                 OS.println(sudo);  
+          
+                // Close the file:
+                 OS.close();
+                } 
+                else 
+                {
+                  // If the file didn't open, print an error:
+                  Serial.println(F("Error Opening OS.txt"));
+                }
+             
+             }            
+          }
+        }
+      }
+
+    }
+  resetbuffer();
+ }
+
+}
+
+
+
+//Function for Administrative Command Operations
+
+void sudo_operation()
+{
+  
+    if ( a >= sizeof(buffer) )
+    resetbuffer();
+    
+    char *operation = buffer;
+/*  
+//For Monitoring operation values
+  Serial.print("operation[0]");
+  Serial.println(operation[0]);
+  Serial.print("operation[1]");
+  Serial.println(operation[1]);
+  Serial.print("operation[2]");
+  Serial.println(operation[2]);
+  Serial.print("operation[3]");
+  Serial.println(operation[3]);
+  Serial.print("strlen(operation)");
+  Serial.println(strlen(operation));
+*/  
+
+
+ while ( strlen(operation) >= 2 )
+ {
+   
+    // Switching Units ON & OFF through SMS
+    
+    if ( (operation[2] == 'A') && (operation[3] == 'A') ) 
+    {
+      if ( operation[4] == '1')
+        {         
+          digitalWrite(AA,HIGH);
+          Serial.println(F("Unit AA is On"));
+
+          OS = SD.open("OS.txt", FILE_WRITE);
+           if (OS)
+            {
+             OS.println(F("Unit AA is On"));
+          
+             OS.close();
+            } 
+           else 
+            {
+             Serial.println(F("Error Opening OS.txt"));
+            }
+          
+          modvar[0]='N';
+        }
+        else
+       {
+        digitalWrite(AA,LOW);
+        Serial.println(F("Unit AA is Off"));
+
+        OS = SD.open("OS.txt", FILE_WRITE);
+           if (OS)
+            {
+             OS.println(F("Unit AA is Off"));
+          
+             OS.close();
+            } 
+           else 
+            {
+             Serial.println(F("Error Opening OS.txt"));
+            }
+          
+        modvar[0]='N';
+       }
+    }
+    if ( (operation[2] == 'A') && (operation[3] == 'B') ) 
+    {
+      if ( operation[4] == '1')
+        {         
+          digitalWrite(AB,HIGH);
+          Serial.println(F("Unit AB is On"));
+          
+          OS = SD.open("OS.txt", FILE_WRITE);
+           if (OS)
+            {
+             OS.println(F("Unit AB is On"));
+          
+             OS.close();
+            } 
+           else 
+            {
+             Serial.println(F("Error Opening OS.txt"));
+            }
+        
+        }
+        else
+       {
+        digitalWrite(AB,LOW);
+        Serial.println(F("Unit AB is Off"));
+
+        OS = SD.open("OS.txt", FILE_WRITE);
+           if (OS)
+            {
+             OS.println(F("Unit AB is Off"));
+          
+             OS.close();
+            } 
+           else 
+            {
+             Serial.println(F("Error Opening OS.txt"));
+            }
+          
+       }
+    }
+    if ( (operation[2] == 'A') && (operation[3] == 'C') ) 
+    {
+      if ( operation[4] == '1')
+        {         
+          digitalWrite(AC,HIGH);
+          Serial.println(F("Unit AC is On"));
+
+          OS = SD.open("OS.txt", FILE_WRITE);
+           if (OS)
+            {
+             OS.println(F("Unit AC is On"));
+          
+             OS.close();
+            } 
+           else 
+            {
+             Serial.println(F("Error Opening OS.txt"));
+            }
+  
+        }
+        else
+       {
+        digitalWrite(AC,LOW);
+        Serial.println(F("Unit AC is Off"));
+
+        OS = SD.open("OS.txt", FILE_WRITE);
+           if (OS)
+            {
+             OS.println(F("Unit AC is Off"));
+          
+             OS.close();
+            } 
+           else 
+            {
+             Serial.println(F("Error Opening OS.txt"));
+            }
+          
+       }
+    }
+    if ( (operation[2] == 'A') && (operation[3] == 'D') ) 
+    {
+      if ( operation[4] == '1')
+        {         
+          digitalWrite(AD,HIGH); 
+          Serial.println(F("Unit AD is On"));
+
+          OS = SD.open("OS.txt", FILE_WRITE);
+           if (OS)
+            {
+             OS.println(F("Unit AD is On"));
+          
+             OS.close();
+            } 
+           else 
+            {
+             Serial.println(F("Error Opening OS.txt"));
+            }
+        
+        }
+        else
+       {
+        digitalWrite(AD,LOW);
+        Serial.println(F("Unit AD is Off"));
+
+        OS = SD.open("OS.txt", FILE_WRITE);
+           if (OS)
+            {
+             OS.println(F("Unit AD is Off"));
+          
+             OS.close();
+            } 
+           else 
+            {
+             Serial.println(F("Error Opening OS.txt"));
+            }
+          
+       }
+    }
+    if ( (operation[2] == 'A') && (operation[3] == 'Z') ) 
+    {
+      if ( operation[4] == '1')
+        {         
+          digitalWrite(AA,HIGH);
+          digitalWrite(AB,HIGH);
+          digitalWrite(AC,HIGH);
+          digitalWrite(AD,HIGH); 
+          Serial.println(F("All Units are On!"));
+
+          OS = SD.open("OS.txt", FILE_WRITE);
+           if (OS)
+            {
+             OS.println(F("All Units are On!"));
+          
+             OS.close();
+            } 
+           else 
+            {
+             Serial.println(F("Error Opening OS.txt"));
+            }
+          
+        }
+        else
+       {
+        digitalWrite(AA,LOW);
+        digitalWrite(AB,LOW);
+        digitalWrite(AC,LOW);
+        digitalWrite(AD,LOW);
+        Serial.println(F("All Units are Off"));
+
+        OS = SD.open("OS.txt", FILE_WRITE);
+           if (OS)
+            {
+             OS.println(F("All Units are Off"));
+          
+             OS.close();
+            } 
+           else 
+            {
+             Serial.println(F("Error Opening OS.txt"));
+            }
+          
+       }
+    }
+
+    // Switching Units ON & OFF due to changing of Atmosphere
+
+    if ( (operation[2] == 'T') && (operation[3] == 'A') && (operation[4] == 'A') ) 
+    {
+      if ( operation[5] == '1')
+        {
+          Serial.println(F("TCS For Unit AA is Now Activate!")); //TCS (Temperature Controlled Switching)  
+          
+          OS = SD.open("OS.txt", FILE_WRITE);
+           if (OS)
+            {
+             OS.println(F("TCS For Unit AA is Now Activate!"));
+          
+             OS.close();
+            } 
+           else 
+            {
+             Serial.println(F("Error Opening OS.txt"));
+            }
+                      
+          modvar[0]='T';
+          Temp_variation();
+        }
+       else
+       {
+         modvar[0]='N';
+         Serial.println(F("TCS For Unit AA is Now De-Activate!"));
+          
+          OS = SD.open("OS.txt", FILE_WRITE);
+           if (OS)
+            {
+             OS.println(F("TCS For Unit AA is Now De-Activate!"));
+          
+             OS.close();
+            } 
+           else 
+            {
+             Serial.println(F("Error Opening OS.txt"));
+            }
+ 
+       }
+    }
+
+    // Switching Units ON & OFF according to Schedule
+
+    if ( (operation[2] == 'S') && (operation[3] == 'A') && (operation[4] == 'A') ) 
+    {
+      if ( operation[5] == '1')
+        {
+          Serial.println(F("Schedule Automation For Unit AA is Now Activate!"));
+
+          OS = SD.open("OS.txt", FILE_WRITE);
+           if (OS)
+            {
+             OS.println(F("Schedule Automation For Unit AA is Now Activate!"));
+          
+             OS.close();
+            } 
+           else 
+            {
+             Serial.println(F("Error Opening OS.txt"));
+            }
+       
+          modvar[0]='S';
+          Schedule();
+        }
+       else
+       {
+         modvar[0]='N';
+         Serial.println(F("Schedule Automation For Unit AA is Now De-Activate!"));
+
+          OS = SD.open("OS.txt", FILE_WRITE);
+           if (OS)
+            {
+             OS.println(F("Schedule Automation For Unit AA is Now De-Activate!"));
+          
+             OS.close();
+            } 
+           else 
+            {
+             Serial.println(F("Error Opening OS.txt"));
+            } 
+  
+       }
+    }
+
+    //Setting Date & Time Schedule
+    
+    if ( (operation[2] == 'o') && (operation[3] == 'n') && (operation[4] == 'h') && (operation[5] == 'r') ) 
+    {
+       for (int count=0; count<=1 ; count++)
+          {
+             hr[count]=operation[6+count]; 
+          }
+          AA_ON_hr=atoi(hr);
+
+          if ( AA_ON_hr >= 24 )
+            AA_ON_hr=23;
+ /*           
+        //For Checking hr values
+          Serial.print("hr[0]:");
+          Serial.println(hr[0]);
+          Serial.print("hr[1]:");
+          Serial.println(hr[1]);
+        //For Checking AA_ON_hr value  
+          Serial.print("AA_ON_hr:");
+          Serial.println(AA_ON_hr);
+ */
+ 
+       OS = SD.open("OS.txt", FILE_WRITE);
+       if (OS)
+       {
+        OS.println(F("AA_ON_hr:"));
+        OS.println(AA_ON_hr); 
+          
+        OS.close();
+       } 
+        else 
+       {
+        Serial.println(F("Error Opening OS.txt"));
+       }
+   
+    }
+
+    if ( (operation[2] == 'o') && (operation[3] == 'f') && (operation[4] == 'f') && (operation[5] == 'h') && (operation[6] == 'r') ) 
+    {
+       for (int count=0; count<=1 ; count++)
+          {
+             hr[count]=operation[7+count]; 
+          }
+          AA_OFF_hr=atoi(hr);
+
+          if ( AA_OFF_hr >= 24 )
+            AA_OFF_hr=23;
+/*
+        //For checking hr values
+          Serial.print("hr[0]:");
+          Serial.println(hr[0]);
+          Serial.print("hr[1]:");
+          Serial.println(hr[1]);
+          
+        //For Checking AA_ON_hr value  
+          Serial.print("AA_OFF_hr:");
+          Serial.println(AA_OFF_hr);
+*/
+
+       OS = SD.open("OS.txt", FILE_WRITE);
+       if (OS)
+       {
+        OS.println(F("AA_OFF_hr:"));
+        OS.println(AA_OFF_hr); 
+          
+        OS.close();
+       } 
+        else 
+       {
+        Serial.println(F("Error Opening OS.txt"));
+       }
+       
+    }
+
+
+         //Setting Hot & Cold Temperature
+    
+    if ( (operation[2] == 'H') && (operation[3] == 'O') && (operation[4] == 'T') ) 
+    {
+       for (int count=0; count<=4 ; count++)
+          {
+             temp[count]=operation[5+count]; 
+          }
+          hot_temp=atof(temp);
+ /*           
+        //For Checking temp values
+          Serial.print("temp[0]:");
+          Serial.println(temp[0]);
+          Serial.print("temp[1]:");
+          Serial.println(temp[1]);
+          Serial.print("temp[2]:");
+          Serial.println(temp[2]);
+          Serial.print("temp[3]:");
+          Serial.println(temp[3]);
+          Serial.print("temp[4]:");
+          Serial.println(temp[4]);
+        //For Checking hot_temp value  
+          Serial.print("hot_temp:");
+          Serial.println(hot_temp);
+ */
+  
+       OS = SD.open("OS.txt", FILE_WRITE);
+       if (OS)
+       {
+        OS.println(F("hot_temp:"));
+        OS.println(hot_temp);  
+          
+        OS.close();
+       } 
+        else 
+       {
+        Serial.println(F("Error Opening OS.txt"));
+       }
+ 
+    }
+
+    if ( (operation[2] == 'C') && (operation[3] == 'O') && (operation[4] == 'L') && (operation[5] == 'D') ) 
+    {
+       for (int count=0; count<=4 ; count++)
+          {
+             temp[count]=operation[6+count]; 
+          }
+          cold_temp=atof(temp);
+
+          
+/*
+        //For checking temp values
+          Serial.print("temp[0]:");
+          Serial.println(temp[0]);
+          Serial.print("temp[1]:");
+          Serial.println(temp[1]);
+          Serial.print("temp[2]:");
+          Serial.println(temp[2]);
+          Serial.print("temp[3]:");
+          Serial.println(temp[3]);
+          Serial.print("temp[4]:");
+          Serial.println(temp[4]);
+        //For Checking cold_temp value  
+          Serial.print("cold_temp:");
+          Serial.println(cold_temp);
+*/  
+
+       OS = SD.open("OS.txt", FILE_WRITE);
+       if (OS)
+       {
+        OS.println(F("cold_temp:"));
+        OS.println(cold_temp);  
+          
+        OS.close();
+       } 
+        else 
+       {
+        Serial.println(F("Error Opening OS.txt"));
+       }
+     
+    }
+ operation+=2;
+ 
+ }
+}
+
+
+//Function for Temperature based Automation
+
+void Temp_variation()
+{
+    
+      if ( a >= sizeof(buffer) )
+    resetbuffer();
+    
+    delay(temp_sens_delay);
+    
+    float h = dht.readHumidity();
+    float t = dht.readTemperature();
+    float f = dht.readTemperature(true);
+    float hif = dht.computeHeatIndex(f, h);
+    float hic = dht.computeHeatIndex(t, h, false);
+
+    
+    if (isnan(h) || isnan(t) || isnan(f)) 
+    {
+      Serial.println(F("Failed to read Atmosphere parameters from the Sensor!"));
+
+       OS = SD.open("OS.txt", FILE_WRITE);
+       if (OS)
+       {
+        OS.println(F("Failed to read Atmosphere parameters from the Sensor!"));  
+          
+        OS.close();
+       } 
+        else 
+       {
+        Serial.println(F("Error Opening OS.txt"));
+       }
+      
+      return;
+    }
+
+/*
+    Serial.print("Humidity: ");
+    Serial.print(h);
+    Serial.print(" % | ");
+    
+    Serial.print("Temperature: ");
+    Serial.print(t);
+    Serial.print(" *C ");
+    Serial.print(f);
+    Serial.print(" *F | ");
+
+    Serial.print("Heat index: ");
+    Serial.print(hic);
+    Serial.print(" *C ");
+    Serial.print(hif);
+    Serial.println(" *F");
+*/
+
+       OS = SD.open("OS.txt", FILE_WRITE);
+       if (OS)
+       {
+        OS.print(F("Humidity: "));
+        OS.print(h);
+        OS.print(F(" % | "));
+    
+        OS.print(F("Temperature: "));
+        OS.print(t);
+        OS.print(F(" *C "));
+        OS.print(f);
+        OS.print(F(" *F | "));
+
+        OS.print(F("Heat index: "));
+        OS.print(hic);
+        OS.print(F(" *C "));
+        OS.print(hif);
+        OS.println(F(" *F"));
+ 
+          
+        OS.close();
+       } 
+        else 
+       {
+        Serial.println(F("Error Opening OS.txt"));
+       }
+       
+
+    if ( t >= hot_temp )
+    {
+      digitalWrite(AA,HIGH);
+//      Serial.println("Unit AA is On");
+
+       OS = SD.open("OS.txt", FILE_WRITE);
+       if (OS)
+       {
+        OS.println(F("Unit AA is On"));  
+          
+        OS.close();
+       } 
+        else 
+       {
+        Serial.println(F("Error Opening OS.txt"));
+       }
+     
+    }
+    else
+    {
+      if ( t <= cold_temp )
+      {
+        digitalWrite(AA,LOW);
+//        Serial.println("Unit AA is Off");
+
+
+       OS = SD.open("OS.txt", FILE_WRITE);
+       if (OS)
+       {
+        OS.println(F("Unit AA is Off"));  
+          
+        OS.close();
+       } 
+        else 
+       {
+        Serial.println(F("Error Opening OS.txt"));
+       }
+       
+      }
+    }
+
+}
+
+
+void Schedule()
+{
+  
+  if ( a >= sizeof(buffer) )
+    resetbuffer();
+
+    DateTime now = RTC.now();
+    int current_year = now.year();
+    int current_month = now.month();
+    int current_day = now.day();
+    int current_hour = now.hour();
+    int current_minute = now.minute();
+    int current_second = now.second();
+         
+/*      
+    Serial.print(now.year(), DEC);
+    Serial.print('/');
+    Serial.print(now.month(), DEC);
+    Serial.print('/');
+    Serial.print(now.day(), DEC);
+    Serial.print(' ');
+    Serial.print(now.hour(), DEC);
+    Serial.print(':');
+    Serial.print(now.minute(), DEC);
+    Serial.print(':');
+    Serial.print(now.second(), DEC);
+    Serial.println(); 
+*/
+
+       OS = SD.open("OS.txt", FILE_WRITE);
+       if (OS)
+       {
+         OS.print(now.year(), DEC);
+         OS.print('/');
+         OS.print(now.month(), DEC);
+         OS.print('/');
+         OS.print(now.day(), DEC);
+         OS.print(' ');
+         OS.print(now.hour(), DEC);
+         OS.print(':');
+         OS.print(now.minute(), DEC);
+         OS.print(':');
+         OS.print(now.second(), DEC);
+         OS.println();
+  
+         OS.close();
+       } 
+        else 
+       {
+        Serial.println(F("Error Opening OS.txt"));
+       }
+
+       
+    if ( ( current_hour >= AA_ON_hr ) && ( current_hour <= AA_OFF_hr ) )
+     {
+      digitalWrite(AA,HIGH);
+      //Serial.println("Unit AA is On");
+     
+       OS = SD.open("OS.txt", FILE_WRITE);
+       if (OS)
+       {
+        OS.println(F("Unit AA is On"));  
+          
+        OS.close();
+       } 
+        else 
+       {
+        Serial.println(F("Error Opening OS.txt"));
+       }
+  
+     }
+     else
+     {
+      digitalWrite(AA,LOW);
+      //Serial.println("Unit AA is Off");
+     
+       OS = SD.open("OS.txt", FILE_WRITE);
+       if (OS)
+       {
+        OS.println(F("Unit AA is Off"));  
+          
+        OS.close();
+       } 
+        else 
+       {
+        Serial.println(F("Error Opening OS.txt"));
+       }
+     
+     } 
+    delay(1000);
+    
+}
+
+/*
+void SDWrite_AA_ON()
+{
+      
+       OS = SD.open("OS.txt", FILE_WRITE);
+       if (OS)
+       {
+        OS.println(F("Unit AA is On"));  
+          
+        OS.close();
+       } 
+        else 
+       {
+        Serial.println(F("Error Opening OS.txt"));
+       }
+    
+}
+
+void SDWrite_AA_OFF()
+{
+      
+       OS = SD.open("OS.txt", FILE_WRITE);
+       if (OS)
+       {
+        OS.println(F("Unit AA is Off"));  
+          
+        OS.close();
+       } 
+        else 
+       {
+        Serial.println(F("Error Opening OS.txt"));
+       }
+    
+}
+
+void SDWrite_AB_ON()
+{
+      
+       OS = SD.open("OS.txt", FILE_WRITE);
+       if (OS)
+       {
+        OS.println(F("Unit AB is On"));  
+          
+        OS.close();
+       } 
+        else 
+       {
+        Serial.println(F("Error Opening OS.txt"));
+       }
+}
+
+void SDWrite_AB_OFF()
+{
+      
+       OS = SD.open("OS.txt", FILE_WRITE);
+       if (OS)
+       {
+        OS.println(F("Unit AB is Off"));  
+          
+        OS.close();
+       } 
+        else 
+       {
+        Serial.println(F("Error Opening OS.txt"));
+       }
+    
+}
+
+void SDWrite_AC_ON()
+{
+      
+       OS = SD.open("OS.txt", FILE_WRITE);
+       if (OS)
+       {
+        OS.println(F("Unit AC is Off"));  
+          
+        OS.close();
+       } 
+        else 
+       {
+        Serial.println(F("Error Opening OS.txt"));
+       }
+    
+}
+
+void SDWrite_AC_OFF()
+{
+      
+       OS = SD.open("OS.txt", FILE_WRITE);
+       if (OS)
+       {
+        OS.println(F("Unit AC is Off"));  
+          
+        OS.close();
+       } 
+        else 
+       {
+        Serial.println(F("Error Opening OS.txt"));
+       }
+    
+}
+
+void SDWrite_AD_ON()
+{
+      
+       OS = SD.open("OS.txt", FILE_WRITE);
+       if (OS)
+       {
+        OS.println(F("Unit AD is On"));  
+          
+        OS.close();
+       } 
+        else 
+       {
+        Serial.println(F("Error Opening OS.txt"));
+       }
+    
+}
+
+void SDWrite_ALL_ON()
+{
+      
+       OS = SD.open("OS.txt", FILE_WRITE);
+       if (OS)
+       {
+        OS.println(F("All Units are On"));  
+          
+        OS.close();
+       } 
+        else 
+       {
+        Serial.println(F("Error Opening OS.txt"));
+       }
+    
+}
+
+void SDWrite_ALL_OFF()
+{
+      
+       OS = SD.open("OS.txt", FILE_WRITE);
+       if (OS)
+       {
+        OS.println(F("All Units are Off"));  
+          
+        OS.close();
+       } 
+        else 
+       {
+        Serial.println(F("Error Opening OS.txt"));
+       }
+    
+}
+*/
+
+void Notification()
+{
+  GPRS.println("AT+CMGS=\"+923312656602\"");  // change the number
+  
+  delay(500);
+  
+  GPRS.println(F("Command Run Successfully"));
+  GPRS.println(F("Buddy Bot"));
+  GPRS.write( 0x1a ); // Ctrl+Z character
+  
+  delay(500);
+}
